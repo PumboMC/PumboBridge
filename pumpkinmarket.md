@@ -14,6 +14,10 @@ The proxy moves players between servers by itself. The bridge lets it and its pl
 - **One file and config for every server.** The bridge finds out which server it is by itself.
 - **Signed messages** that cannot be faked or replayed. It reconnects by itself when the proxy restarts.
 
+## Screenshots
+
+![/pumbo bridge on the proxy: every server and its bridge](assets/market/bridge-status.webp)
+
 ## Installation
 
 1. Turn the bridge on in `pumboprox.yml` (`bridge: enabled: true`) and restart the proxy. `bridge key` in the proxy console shows the key.
