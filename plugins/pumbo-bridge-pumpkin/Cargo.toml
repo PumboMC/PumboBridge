@@ -1,7 +1,7 @@
 [package]
 name = "pumbo-bridge-pumpkin"
 # The PumboBridge product version (not the workspace version of the crates).
-version = "0.1.1-beta.1"
+version = "0.1.1-beta"
 description = "PumboBridge: the server half of PumboProx on Pumpkin (commands, queries, events and permissions from the proxy)"
 edition.workspace = true
 license.workspace = true
