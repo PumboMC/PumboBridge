@@ -40,13 +40,17 @@ jobs:
           done
           test -f "dist/$f"
           body=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)
-          notes=$(printf '%s\n' "$body" | awk '/^## What.s changed/{f=1;next} f&&/^(## |Previous release)/{exit} f' | sed '/^$/d')
-          [ -n "$notes" ] || notes=$(printf '%s\n' "$body" | head -1)
+          # The market gets the changes first, then the links.
+          changes=$(printf '%s\n' "$body" | awk '/^## What.s changed/{f=1;next} f&&/^(## |Previous release)/{exit} f' | sed '/^$/d')
+          [ -n "$changes" ] || changes=$(printf '%s\n' "$body" | sed -n '1{/^\*\*Full Changelog/!p;}')
+          prev=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq "[.[] | select(.tag_name != \"$TAG\")][0].tag_name // empty")
           {
             echo "version=$v"
             echo "file=dist/$f"
             echo "notes<<PUMBO_NOTES_END"
-            printf '%s\n\nFull notes: https://github.com/%s/releases/tag/%s\n' "$notes" "$GITHUB_REPOSITORY" "$TAG"
+            if [ -n "$changes" ]; then printf "## What's changed\n\n%s\n\n" "$changes"; fi
+            echo "Full notes: https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG"
+            if [ -n "$prev" ]; then echo "Full changelog: https://github.com/$GITHUB_REPOSITORY/compare/$prev...$TAG"; fi
             echo "PUMBO_NOTES_END"
           } >> "$GITHUB_OUTPUT"
 
