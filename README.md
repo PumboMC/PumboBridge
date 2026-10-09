@@ -64,15 +64,15 @@ PumboBridge has two halves. The proxy half is built into PumboProx, so there is 
 
 | Half | File | Where it goes | What it does |
 | --- | --- | --- | --- |
-| 🎃 **Server plugin** | `PumboBridge-26.3.wasm` or `PumboBridge-26.2.wasm` | `plugins/` of every Pumpkin server | Connects to the proxy and runs what it asks on this server. |
+| 🎃 **Server plugin** | `PumboBridge-Pumpkin-26.3-<version>.wasm` or `PumboBridge-Pumpkin-26.2-<version>.wasm` | `plugins/` of every Pumpkin server | Connects to the proxy and runs what it asks on this server. |
 | 🌐 **Proxy side** | built into PumboProx | `bridge:` in `pumboprox.yml` | Accepts the bridges, signs the connection and offers the `pumbo:bridge` service to proxy plugins. |
 
 A new Pumpkin version needs only a new build of the bridge. A new Minecraft version for players changes only the proxy.
 
 ## Installation
 
-> [!IMPORTANT]
-> Ready-made files come with release 0.1. Until then, [build from source](#building).
+> [!TIP]
+> Download the files from [Releases](https://github.com/PumboMC/PumboBridge/releases/latest), or [build from source](#building).
 
 1. **Proxy.** Turn the bridge on in `pumboprox.yml` and restart the proxy:
 
