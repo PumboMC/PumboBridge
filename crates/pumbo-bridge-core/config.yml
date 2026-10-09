@@ -1,0 +1,9 @@
+# ══════════════════════════════════════════════════════════════
+#  PumboBridge · config.yml
+#  The same file on every Pumpkin server behind one PumboProx.
+#  Apply changes:  restart the server (the bridge reconnects by itself)
+#  Full reference: README.md → Configuration
+# ══════════════════════════════════════════════════════════════
+
+proxy: 127.0.0.1:25578       # bridge.listen of PumboProx (ip:port, no names)
+key: ""                      # `pumbo bridge key` in the proxy console

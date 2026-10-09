@@ -1,0 +1,4 @@
+# Fetch the PumboProx git dependency with the git command line, so a private
+# repository works with your usual git credentials.
+[net]
+git-fetch-with-cli = true

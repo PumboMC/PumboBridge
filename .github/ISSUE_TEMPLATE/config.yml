@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/PumboMC/PumboBridge/security/advisories/new
+    about: Report it privately, not as an issue.
+  - name: A problem in the proxy itself
+    url: https://github.com/PumboMC/PumboProx/issues
+    about: Bugs of PumboProx and the shared libraries go there.

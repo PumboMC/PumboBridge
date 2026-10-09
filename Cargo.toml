@@ -1,0 +1,39 @@
+[workspace]
+resolver = "3"
+# Globs, so that a new crate or plugin only needs its own directory.
+members = ["crates/*", "plugins/*"]
+
+[workspace.package]
+version = "0.1.0-beta.1"
+edition = "2024"
+license = "GPL-3.0-only"
+authors = ["Patryk Skoczylas"]
+publish = false
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+unreachable = "deny"
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+pumbo-common = { git = "https://github.com/PumboMC/PumboProx" }
+pumbo-bridge-core = { path = "crates/pumbo-bridge-core" }
+pumbo-bridge-proto = { git = "https://github.com/PumboMC/PumboProx" }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

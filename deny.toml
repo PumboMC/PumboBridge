@@ -1,0 +1,59 @@
+# Dependency policy, checked with `cargo deny check`.
+
+[graph]
+all-features = false
+
+[licenses]
+# Plugins and cores are GPL-3.0-only, pumbo-common is MIT OR Apache-2.0.
+# Dependencies stay permissive so pumbo-common keeps its license.
+allow = [
+    "MIT",
+    "MIT-0",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "CC0-1.0",
+    "GPL-3.0-only",
+]
+confidence-threshold = 0.9
+# The list is shared with the other Pumbo repositories; not every license occurs here.
+unused-allowed-license = "allow"
+
+[licenses.private]
+ignore = true
+
+[bans]
+multiple-versions = "allow"
+wildcards = "deny"
+allow-wildcard-paths = true
+# Clean room: server internals of Pumpkin (GPL) never become dependencies. The
+# plugin API crate (`pumpkin-plugin-api`, MIT/Apache) is allowed for the
+# `*-pumpkin` platform layers.
+deny = [
+    { name = "pumpkin" },
+    { name = "pumpkin-protocol" },
+    { name = "pumpkin-data" },
+    { name = "pumpkin-util" },
+    { name = "pumpkin-world" },
+    { name = "pumpkin-nbt" },
+    { name = "pumpkin-config" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-org = { github = ["PumboMC"] }
+
+[advisories]
+yanked = "deny"
+ignore = [
+    # atomic-polyfill (unmaintained) comes with pumpkin-plugin-api itself
+    # (tracing-serde-structured -> heapless 0.7); every *-pumpkin layer has it
+    # and no plugin can replace it.
+    { id = "RUSTSEC-2023-0089", reason = "dependency of pumpkin-plugin-api, no alternative" },
+]

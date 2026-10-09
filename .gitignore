@@ -1,0 +1,4 @@
+/target
+dist/
+*.cwasm
+.DS_Store

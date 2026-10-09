@@ -1,0 +1,70 @@
+name: Bug report
+description: Something in PumboBridge does not work as it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. A security problem? Don't report it here, see [SECURITY.md](https://github.com/PumboMC/PumboBridge/blob/main/SECURITY.md).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: And what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: "PumboBridge version"
+      description: The release, or the commit you built from.
+    validations:
+      required: true
+  - type: dropdown
+    id: build
+    attributes:
+      label: Build
+      options:
+        - PumboProx (whole network)
+        - Pumpkin 26.3
+        - Pumpkin 26.2
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: PumboProx and Pumpkin versions
+      description: "`pumboprox version` (with the proxy build) and the first line of the Pumpkin log, e.g. `0.2.0+26.3-26.51`."
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: Minecraft client version
+      placeholder: 26.3, 1.21.4 ...
+  - type: textarea
+    id: plugins
+    attributes:
+      label: Other plugins
+      description: Other Pumbo plugins and anything else in `plugins/`.
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: The proxy or server log around the problem. Remove secrets and addresses you don't want to share.
+      render: text
+  - type: textarea
+    id: config
+    attributes:
+      label: Config
+      description: The relevant parts of the plugin's `config.yml`, without passwords or keys.
+      render: yaml

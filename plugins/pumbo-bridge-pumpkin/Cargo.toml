@@ -1,0 +1,36 @@
+[package]
+name = "pumbo-bridge-pumpkin"
+# The PumboBridge product version (not the workspace version of the crates).
+version = "0.1.0-beta.1"
+description = "PumboBridge: the server half of PumboProx on Pumpkin (commands, queries, events and permissions from the proxy)"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["mc263"]
+# Pumpkin 0.2.0 (Minecraft 26.3).
+mc263 = ["dep:api263"]
+# Pumpkin 0.1.0-dev (Minecraft 26.2).
+mc262 = ["dep:api262"]
+
+[dependencies]
+pumbo-bridge-core.workspace = true
+pumbo-common.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+# The plugin API and the raw socket bindings only exist inside the
+# WebAssembly component; natively the crate builds without them.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+api263 = { package = "pumpkin-plugin-api", version = "=0.2.0", optional = true }
+api262 = { package = "pumpkin-plugin-api", version = "=0.1.0-dev", optional = true }
+# Non-blocking wasi:sockets (connect, read, write) from the per-tick task.
+wasip2 = "1"
+
+[lints]
+workspace = true
