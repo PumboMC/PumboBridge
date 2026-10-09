@@ -482,7 +482,7 @@ dependencies = [
 [[package]]
 name = "pumbo-bridge-proto"
 version = "0.1.0-beta.1"
-source = "git+https://github.com/PumboMC/PumboProx#d8b8ed04ecd3ca4898d5eb3016ae1fa06f5f0bf6"
+source = "git+https://github.com/PumboMC/PumboProx#0bc067eeea90dcde4c5cbeedf7c97f16c309b62a"
 dependencies = [
  "ciborium",
  "hmac",
@@ -507,7 +507,7 @@ dependencies = [
 [[package]]
 name = "pumbo-common"
 version = "0.1.0-beta.1"
-source = "git+https://github.com/PumboMC/PumboProx#d8b8ed04ecd3ca4898d5eb3016ae1fa06f5f0bf6"
+source = "git+https://github.com/PumboMC/PumboProx#0bc067eeea90dcde4c5cbeedf7c97f16c309b62a"
 dependencies = [
  "md-5",
  "rand_core",
