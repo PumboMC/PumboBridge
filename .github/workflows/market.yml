@@ -1,0 +1,77 @@
+# Publishes each release to the Pumpkin market and keeps the market description
+# in sync with pumpkinmarket.md. Needs the MARKET_API_TOKEN secret.
+name: market
+
+on:
+  release:
+    types: [published]
+  push:
+    branches: [main]
+    paths: [pumpkinmarket.md]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release to publish, e.g. v0.1.1-beta (empty updates only the description)
+        required: false
+
+permissions:
+  contents: read
+
+concurrency: market
+
+jobs:
+  market:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Plugin file and notes of the release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          [ -n "$TAG" ] || exit 0
+          v=${TAG#v}
+          f="PumboBridge-Pumpkin-26.3-$v.wasm"
+          for _ in 1 2 3 4 5 6; do
+            gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "$f" --dir dist --clobber && break
+            sleep 10
+          done
+          test -f "dist/$f"
+          body=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)
+          notes=$(printf '%s\n' "$body" | awk '/^## What.s changed/{f=1;next} f&&/^(## |Previous release)/{exit} f' | sed '/^$/d')
+          [ -n "$notes" ] || notes=$(printf '%s\n' "$body" | head -1)
+          {
+            echo "version=$v"
+            echo "file=dist/$f"
+            echo "notes<<PUMBO_NOTES_END"
+            printf '%s\n\nFull notes: https://github.com/%s/releases/tag/%s\n' "$notes" "$GITHUB_REPOSITORY" "$TAG"
+            echo "PUMBO_NOTES_END"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish to the Pumpkin market
+        if: steps.release.outputs.version != ''
+        uses: filiphsps/pumpkin-plugins/actions/publish-to-pumpkin-market@7ffc9694ba8e658df0540604691de268a1c30b64 # publish-to-pumpkin-market-v0.0.4
+        with:
+          plugin-name: PumboBridge
+          version: ${{ steps.release.outputs.version }}
+          wasm-file: ${{ steps.release.outputs.file }}
+          api-token: ${{ secrets.MARKET_API_TOKEN }}
+          release-notes: ${{ steps.release.outputs.notes }}
+
+      - name: Description from pumpkinmarket.md
+        id: listing
+        run: |
+          {
+            echo "text<<PUMBO_MD_END"
+            cat pumpkinmarket.md
+            echo "PUMBO_MD_END"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Update the market listing
+        uses: filiphsps/pumpkin-plugins/actions/update-pumpkin-market-listing@59e85d260977a2dd7d07da2f9a75a4e799a6e6bd # update-pumpkin-market-listing-v0.0.2
+        with:
+          plugin-name: PumboBridge
+          description: ${{ steps.listing.outputs.text }}
+          api-token: ${{ secrets.MARKET_API_TOKEN }}
