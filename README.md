@@ -56,7 +56,7 @@ PumboBridge connects each Pumpkin server to your PumboProx proxy. The proxy move
 | 🔗 | **Pairing** | The same file and config on every server. The bridge finds out by itself which server it is. |
 | ✍️ | **Signed** | Every message is signed with the bridge key and numbered, so it cannot be faked or replayed. |
 | 🔄 | **Reconnect** | When the proxy restarts, the bridge connects again by itself after 1, 2, 5, 10 and then every 30 seconds. |
-| 📊 | **Status** | `/pumbo bridge` lists every server with the state of its bridge, versions, ping and since when it is connected. |
+| 📊 | **Status** | `/prox bridge` lists every server with the state of its bridge, versions, ping and since when it is connected. |
 
 ## Two builds
 
@@ -83,17 +83,17 @@ A new Pumpkin version needs only a new build of the bridge. A new Minecraft vers
      trusted-plugins: [pumbo-core]  # proxy plugins that may send commands
    ```
 
-   The proxy creates `bridge.key`. Type `bridge key` in the proxy console to see it. Players with `pumbo.proxy.bridge.key` see it with `/pumbo bridge key`:
+   The proxy creates `bridge.key`. Type `bridge key` in the proxy console to see it. Players with `pumbo.proxy.bridge.key` see it with `/prox bridge key`:
 
-   <img src="assets/bridge-key.png" alt="/pumbo bridge key in the game, with part of the key hidden" width="100%">
+   <img src="assets/bridge-key.png" alt="/prox bridge key in the game, with part of the key hidden" width="100%">
 
 2. **Each server.** Put the file that matches your Pumpkin version into `plugins/` and start the server once. It creates `plugins/data/pumbobridge/config.yml`. Put the proxy's address and the key there and restart the server.
 
 3. **Pumpkin's plugin sandbox.** The bridge needs `network.tcp.connect`, `fs.read.data` and `fs.write.data`. Pumpkin asks about them in the console on the first start. To approve them in advance, add them to `allowed_permissions` in `[plugins]` of `pumpkin.toml`.
 
-4. **Check.** `/pumbo bridge` in the proxy lists every server and its bridge.
+4. **Check.** `/prox bridge` in the proxy lists every server and its bridge.
 
-   <img src="assets/bridge-status.png" alt="/pumbo bridge in the game: lobby and survival connected, version 0.1.0 / 1.0, ping 35 ms, connected for 50 minutes" width="100%">
+   <img src="assets/bridge-status.png" alt="/prox bridge in the game: lobby and survival connected, version 0.1.0 / 1.0, ping 35 ms, connected for 50 minutes" width="100%">
 
 The connection is signed, not encrypted, like Velocity forwarding. Keep it on `127.0.0.1`, a private network or a tunnel (WireGuard, Tailscale). The bridge warns when the proxy address is public.
 
@@ -122,8 +122,8 @@ The bridge has no commands on the server. On the proxy:
 
 | Command | What it does | Permission |
 | --- | --- | --- |
-| `/pumbo bridge` | Every server with the state of its bridge | `pumbo.proxy.bridge` |
-| `/pumbo bridge key` | Show the bridge key | `pumbo.proxy.bridge.key` |
+| `/prox bridge` | Every server with the state of its bridge | `pumbo.proxy.bridge` |
+| `/prox bridge key` | Show the bridge key | `pumbo.proxy.bridge.key` |
 
 In the proxy console the same commands are `bridge` and `bridge key`.
 

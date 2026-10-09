@@ -16,14 +16,14 @@ The proxy moves players between servers by itself. The bridge lets it and its pl
 
 ## Screenshots
 
-![/pumbo bridge on the proxy: every server and its bridge](assets/market/bridge-status.webp)
+![/prox bridge on the proxy: every server and its bridge](assets/market/bridge-status.webp)
 
 ## Installation
 
 1. Turn the bridge on in `pumboprox.yml` (`bridge: enabled: true`) and restart the proxy. `bridge key` in the proxy console shows the key.
 2. Put this file into `plugins/` of every server and start it once. Put the proxy's bridge address and the key into `plugins/data/pumbobridge/config.yml` and restart.
 3. Approve `network.tcp.connect`, `fs.read.data` and `fs.write.data` when Pumpkin asks, or add them to `allowed_permissions` in `pumpkin.toml`.
-4. `/pumbo bridge` on the proxy lists every server and its bridge.
+4. `/prox bridge` on the proxy lists every server and its bridge.
 
 Keep the connection on `127.0.0.1`, a private network or a tunnel: it is signed, not encrypted. Works with Pumpkin 0.2.0 (Minecraft 26.3) and PumboProx 0.1.1-beta.
 
