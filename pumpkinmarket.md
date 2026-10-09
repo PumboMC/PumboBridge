@@ -27,3 +27,5 @@ Keep the connection on `127.0.0.1`, a private network or a tunnel: it is signed,
 
 PumboBridge is in beta. Try it on a test network before you put players on it.
 Source, documentation and issues: https://github.com/PumboMC/PumboBridge (GPL-3.0)
+
+[![PumboProx: everything you need to run a network on Pumpkin](assets/pumboprox.webp)](https://github.com/PumboMC/PumboProx)
