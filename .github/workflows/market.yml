@@ -60,12 +60,15 @@ jobs:
           api-token: ${{ secrets.MARKET_API_TOKEN }}
           release-notes: ${{ steps.release.outputs.notes }}
 
+      # Images can be linked by their path in the repository
+      # (`![Login](assets/market/login.png)`); the market gets their public address.
       - name: Description from pumpkinmarket.md
         id: listing
         run: |
+          raw="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$GITHUB_SHA"
           {
             echo "text<<PUMBO_MD_END"
-            cat pumpkinmarket.md
+            sed -E "s#\]\((\./)?assets/#]($raw/assets/#g; s#src=\"(\./)?assets/#src=\"$raw/assets/#g" pumpkinmarket.md
             echo "PUMBO_MD_END"
           } >> "$GITHUB_OUTPUT"
 
