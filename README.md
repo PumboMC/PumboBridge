@@ -27,14 +27,14 @@
 
 ---
 
-> [!NOTE]
-> PumboBridge is in **beta** (0.1.0-beta.1). Try it on a test network before you put players on it.
-
 <p align="center">
-  <a href="https://github.com/PumboMC/PumboProx"><img src="assets/pumboprox.webp" alt="PumboProx: everything you need to run a network on Pumpkin" width="80%"></a>
+  <a href="https://github.com/PumboMC/PumboProx"><img src="assets/pumboprox.webp" alt="PumboProx: everything you need to run a network on Pumpkin" width="100%"></a>
 </p>
 
 <p align="center"><b>Running more than one server?</b> <a href="https://github.com/PumboMC/PumboProx">PumboProx</a> is the proxy for Pumpkin networks, with plugins in WebAssembly.<br>PumboBridge is its server half: it connects each Pumpkin server to the proxy.</p>
+
+> [!NOTE]
+> PumboBridge is in **beta** (0.1.0-beta.1). Try it on a test network before you put players on it.
 
 ## What it does
 
