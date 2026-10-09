@@ -4,7 +4,7 @@
 
 <h1 align="center">PumboBridge</h1>
 
-<p align="center">The server half of PumboProx: it lets the proxy control your Pumpkin servers.</p>
+<p align="center">The server half of PumboProx: it lets the proxy act inside your Pumpkin servers.</p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
@@ -38,7 +38,7 @@
 
 ## What it does
 
-PumboBridge connects each Pumpkin server to your PumboProx proxy. The proxy and its plugins can then teleport players, change game modes, heal, read and change inventories, and ask about players and servers. It also brings the proxy's ranks to every server. The bridge has no commands of its own and keeps no player data: it only does what the proxy asks.
+PumboBridge connects each Pumpkin server to your PumboProx proxy. The proxy moves players between servers on its own. The bridge lets it and its plugins act inside a server as well: teleport players within the world, change game modes, heal, read and change inventories, and ask about players and the server. It also brings the proxy's ranks to every server. The bridge has no commands of its own and keeps no player data: it only does what the proxy asks.
 
 ## Features
 
