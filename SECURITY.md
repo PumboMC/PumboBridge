@@ -23,4 +23,6 @@ Please include:
 
 We confirm that the report arrived, work on the fix in a private advisory and publish it together with a release. You are credited in the advisory unless you prefer not to be.
 
+What a trusted admin can do on purpose with the rights PumboBridge gives is not a vulnerability; the **Security** section of the README describes such rights where a plugin has them.
+
 Problems in the proxy or in the shared libraries go to [PumboProx](https://github.com/PumboMC/PumboProx/security/advisories/new), problems in Pumpkin itself to the [Pumpkin project](https://github.com/Pumpkin-MC/Pumpkin).

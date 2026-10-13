@@ -24,14 +24,14 @@ env:
 
 jobs:
   check:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - name: Rust
         run: |
           rustup toolchain install stable --profile minimal -c rustfmt,clippy -t wasm32-wasip2
           rustup default stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2.9.2
       - name: cargo-deny
         run: cargo install cargo-deny --locked --version 0.20.2
       - name: Format
