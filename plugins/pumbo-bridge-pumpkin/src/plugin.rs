@@ -12,7 +12,7 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, VecDeque};
 use std::time::{Duration, Instant};
 
-use pumbo_bridge_core::perms::{Change, Perms};
+use pumbo_bridge_core::perms::{Change, PUMBOPERMS, Perms, StoredExport, local_perms_alive};
 use pumbo_bridge_core::proto::api::{self, GameMode as Mode, PermsMode, Pos};
 use pumbo_bridge_core::proto::ciborium::Value;
 use pumbo_bridge_core::proto::uuid::Uuid as Id;
@@ -114,6 +114,10 @@ fn info(msg: &str) {
 
 fn warn(msg: &str) {
     log(LogLevel::Warn, &format!("[PumboBridge] {msg}"));
+}
+
+fn error(msg: &str) {
+    log(LogLevel::Error, &format!("[PumboBridge] {msg}"));
 }
 
 fn random_bytes<const N: usize>() -> [u8; N] {
@@ -230,7 +234,11 @@ fn pump(t: &mut Task, cfg: &Config, server: &Server) -> Vec<Incoming> {
             Ok((rx, tx)) => {
                 let versions = (env!("CARGO_PKG_VERSION").to_string(), PUMPKIN.0.to_string(), PUMPKIN.1.to_string());
                 let caps = crate::CAPS.iter().map(|s| s.to_string()).collect();
-                let catalog = pumbo_common::pumpkin::COMMAND_NODES.iter().map(|s| s.to_string()).collect();
+                let catalog = pumbo_common::pumpkin::COMMAND_NODES
+                    .iter()
+                    .chain(pumbo_common::pumpkin::PUMBO_NODES)
+                    .map(|s| s.to_string())
+                    .collect();
                 let instance = INSTANCE.with(|i| *i.borrow());
                 let session = Box::new(Session::new(key, random_bytes(), instance, versions, caps, catalog, now));
                 Net::Up { rx, tx, _sock: sock, session }
@@ -322,6 +330,7 @@ fn tick(server: &Server) {
         match i {
             Incoming::Welcome { server: name, stats_ms, player_stats_ms } => {
                 say_once(&mut t, format!("connected to PumboProx as server {name}"));
+                PERMS.with(|p| p.borrow_mut().session_started());
                 t.backoff.reset();
                 t.stats_ms = (u64::from(stats_ms.max(1000)), u64::from(player_stats_ms.max(500)));
                 t.worlds = Changes::default();
@@ -469,9 +478,9 @@ fn periodic(t: &mut Task, server: &Server) {
 /// A local PumboPerms has precedence (spec §5.3), unless it stepped back
 /// because the proxy's PumboPerms rules (`passive`, PumboPerms spec §16).
 fn perms_check(t: &mut Task, server: &Server) {
-    let reply = crate::papi::ipc::send_ipc_message("pumboperms", br#"{"op":"hello"}"#);
+    let reply = crate::papi::ipc::send_ipc_message(PUMBOPERMS, br#"{"op":"hello"}"#);
     let passive = matches!(&reply, Ok(Ok(b)) if serde_json::from_slice::<serde_json::Value>(b).ok().and_then(|v| v.get("passive")?.as_bool()) == Some(true));
-    let want = if reply.is_ok() && !passive { PermsMode::Local } else { PermsMode::Bridge };
+    let want = if local_perms_alive(&reply) && !passive { PermsMode::Local } else { PermsMode::Bridge };
     let (changes, switched) = PERMS.with(|p| p.borrow_mut().set_mode(want));
     if !switched {
         return;
@@ -566,8 +575,8 @@ fn run(t: &mut Task, server: &Server, c: &Cmd) -> (Option<Reply>, bool) {
         }
         method::PERMS_EXPORT => {
             if let Ok(a) = args::<api::PermsExport>(&c.args) {
-                save_export(&a);
-                PERMS.with(|p| p.borrow_mut().set_export(a));
+                let stored = PERMS.with(|p| p.borrow_mut().set_export(a, pumbo_common::clock::now_ms()).clone());
+                save_export(&stored);
             }
             return (None, false);
         }
@@ -848,14 +857,20 @@ fn show_items(server: &Server, a: api::ShowItems) -> Reply {
     ok(&())
 }
 
-fn save_export(e: &api::PermsExport) {
+/// Written whole or not at all (a temporary file renamed over the old one).
+fn save_export(e: &StoredExport) {
     let dir = DIR.with(|d| d.borrow().clone());
-    if let Ok(json) = serde_json::to_string(e) {
-        let _ = std::fs::write(format!("{dir}/perms-export.json"), json);
+    let (path, tmp) = (format!("{dir}/perms-export.json"), format!("{dir}/perms-export.json.tmp"));
+    let result = serde_json::to_string(e)
+        .map_err(|e| e.to_string())
+        .and_then(|json| std::fs::write(&tmp, json).map_err(|e| e.to_string()))
+        .and_then(|()| std::fs::rename(&tmp, &path).map_err(|e| e.to_string()));
+    if let Err(e) = result {
+        warn(&format!("cannot save {path}: {e}"));
     }
 }
 
-fn load_export(dir: &str) -> Option<api::PermsExport> {
+fn load_export(dir: &str) -> Option<StoredExport> {
     serde_json::from_str(&std::fs::read_to_string(format!("{dir}/perms-export.json")).ok()?).ok()
 }
 
@@ -982,6 +997,7 @@ impl Plugin for PumboBridge {
     }
 
     fn on_load(&self, context: Context) -> Result<(), String> {
+        pumbo_common::panic::install(error);
         let _ = started();
         let dir = context.get_data_folder();
         let path = format!("{dir}/config.yml");
@@ -1001,9 +1017,13 @@ impl Plugin for PumboBridge {
                 "proxy {a}.{b}.{c}.{d}:{port} is outside loopback and private networks; bridge frames are signed, not encrypted: use a tunnel"
             ));
         }
-        if let Some(e) = load_export(&dir) {
-            PERMS.with(|p| p.borrow_mut().set_export(e));
-        }
+        PERMS.with(|p| {
+            let mut p = p.borrow_mut();
+            p.set_connected(cfg.key.is_some());
+            if let Some(e) = load_export(&dir) {
+                p.load_export(e);
+            }
+        });
         DIR.with(|d| *d.borrow_mut() = dir);
         SERVER.with(|s| *s.borrow_mut() = Some(context.get_server()));
         INSTANCE.with(|i| *i.borrow_mut() = random_bytes());
@@ -1050,9 +1070,9 @@ impl Plugin for PumboBridge {
         Ok(())
     }
 
-    fn handle_ipc_message(&self, _sender: String, message: Vec<u8>) -> Result<Vec<u8>, String> {
+    fn handle_ipc_message(&self, sender: String, message: Vec<u8>) -> Result<Vec<u8>, String> {
         let before = PERMS.with(|p| p.borrow().mode());
-        let (reply, mut changes) = PERMS.with(|p| p.borrow_mut().ipc(&message, env!("CARGO_PKG_VERSION")));
+        let (reply, mut changes) = PERMS.with(|p| p.borrow_mut().ipc(&sender, &message, env!("CARGO_PKG_VERSION")));
         let after = PERMS.with(|p| p.borrow().mode());
         SERVER.with(|s| {
             let s = s.borrow();

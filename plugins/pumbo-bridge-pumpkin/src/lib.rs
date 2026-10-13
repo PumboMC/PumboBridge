@@ -11,6 +11,45 @@
 //! subscribes to an event that one of its own calls can fire (a nested call
 //! into the same plugin hangs Pumpkin, spec §2 G2).
 
+// Panics trap the host and stdout is lost; these stay errors outside tests.
+#![deny(
+    clippy::string_slice,
+    clippy::print_stdout,
+    clippy::print_stderr,
+    clippy::await_holding_lock,
+    clippy::await_holding_refcell_ref,
+    clippy::integer_division,
+    clippy::modulo_arithmetic,
+    clippy::unchecked_time_subtraction,
+    clippy::get_unwrap,
+    clippy::exit,
+    clippy::large_stack_arrays,
+    clippy::large_stack_frames,
+    clippy::unwrap_in_result,
+    clippy::panic_in_result_fn,
+    clippy::significant_drop_in_scrutinee
+)]
+#![cfg_attr(
+    test,
+    allow(
+        clippy::string_slice,
+        clippy::print_stdout,
+        clippy::print_stderr,
+        clippy::await_holding_lock,
+        clippy::await_holding_refcell_ref,
+        clippy::integer_division,
+        clippy::modulo_arithmetic,
+        clippy::unchecked_time_subtraction,
+        clippy::get_unwrap,
+        clippy::exit,
+        clippy::large_stack_arrays,
+        clippy::large_stack_frames,
+        clippy::unwrap_in_result,
+        clippy::panic_in_result_fn,
+        clippy::significant_drop_in_scrutinee
+    )
+)]
+
 use pumbo_bridge_core::proto::method;
 
 /// Plugin name on Pumpkin (also its data folder).
@@ -34,7 +73,8 @@ pub const PUMPING: &[(&str, &[&str])] = &[
     ("set-permission-level", &["player-permission-check"]),
     ("open-gui", &["inventory-open"]),
     // `ipc` re-enters through `pump_reentry` (safe); other plugins' handlers
-    // never call the bridge back there (PumboPerms calls from its own task).
+    // never call the bridge back there (PumboPerms calls from its own task,
+    // and `player-info` from its ipc handler, never while answering `hello`).
     ("ipc", &[]),
 ];
 

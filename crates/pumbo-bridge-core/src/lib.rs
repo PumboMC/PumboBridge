@@ -12,6 +12,45 @@
 //! that pumps the socket and calls into this crate; it never subscribes to an
 //! event that its own calls fire (spec §3.6).
 
+// Panics trap the host and stdout is lost; these stay errors outside tests.
+#![deny(
+    clippy::string_slice,
+    clippy::print_stdout,
+    clippy::print_stderr,
+    clippy::await_holding_lock,
+    clippy::await_holding_refcell_ref,
+    clippy::integer_division,
+    clippy::modulo_arithmetic,
+    clippy::unchecked_time_subtraction,
+    clippy::get_unwrap,
+    clippy::exit,
+    clippy::large_stack_arrays,
+    clippy::large_stack_frames,
+    clippy::unwrap_in_result,
+    clippy::panic_in_result_fn,
+    clippy::significant_drop_in_scrutinee
+)]
+#![cfg_attr(
+    test,
+    allow(
+        clippy::string_slice,
+        clippy::print_stdout,
+        clippy::print_stderr,
+        clippy::await_holding_lock,
+        clippy::await_holding_refcell_ref,
+        clippy::integer_division,
+        clippy::modulo_arithmetic,
+        clippy::unchecked_time_subtraction,
+        clippy::get_unwrap,
+        clippy::exit,
+        clippy::large_stack_arrays,
+        clippy::large_stack_frames,
+        clippy::unwrap_in_result,
+        clippy::panic_in_result_fn,
+        clippy::significant_drop_in_scrutinee
+    )
+)]
+
 pub mod perms;
 pub mod session;
 
@@ -94,7 +133,7 @@ impl Backoff {
     pub fn next_ms(&mut self, random: u32) -> u64 {
         let base = STEPS_MS.get(self.step).copied().unwrap_or(30_000);
         self.step = (self.step + 1).min(STEPS_MS.len() - 1);
-        base + u64::from(random) % (base / 5 + 1)
+        base + u64::from(random) % (base.checked_div(5).unwrap_or(0) + 1)
     }
 
     pub fn reset(&mut self) {
