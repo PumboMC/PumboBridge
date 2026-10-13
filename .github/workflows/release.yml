@@ -1,0 +1,89 @@
+# A tag v<version> (e.g. v0.1.3-beta) builds the PumboBridge files and publishes
+# them as a GitHub release with SHA256SUMS, the CHANGELOG.md section of that
+# version as the notes, then starts market.yml. The tag must match the version
+# in the plugin manifests; this workflow never changes a version.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions: {}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # the release
+      actions: write # starting market.yml
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Version and notes
+        run: |
+          shopt -s nullglob
+          v=${GITHUB_REF_NAME#v}
+          bad=0
+          for f in plugins/*/Cargo.toml plugins/*/pumbo-*.yml; do
+            got=$(sed -nE 's/^version *[=:] *"?([^"]*)"?$/\1/p' "$f" | head -n 1)
+            if [ "$got" != "$v" ]; then
+              echo "::error file=$f::version ${got:-missing}, but the tag is $GITHUB_REF_NAME"
+              bad=1
+            fi
+          done
+          [ "$bad" = 0 ] || exit 1
+          awk -v h="## [$v]" 'index($0, h) == 1 {f = 1; next} f && /^## \[/ {exit} f' CHANGELOG.md > "$RUNNER_TEMP/changes.md"
+          if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/changes.md"; then
+            echo "::error file=CHANGELOG.md::no section for $v, write it before tagging"
+            exit 1
+          fi
+          link=$(awk -v r="[$v]: " 'index($0, r) == 1 {print substr($0, length(r) + 1)}' CHANGELOG.md)
+          # market.yml sends the "What's changed" section to the Pumpkin market.
+          {
+            echo "## What's changed"
+            cat "$RUNNER_TEMP/changes.md"
+            if [ -n "$link" ]; then printf '\n**Full changelog:** %s\n' "$link"; fi
+          } > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
+
+      - name: Rust
+        run: |
+          rustup toolchain install stable --profile minimal -t wasm32-wasip2
+          rustup default stable
+
+      - name: Build
+        run: |
+          v=${GITHUB_REF_NAME#v}
+          out=$RUNNER_TEMP/release
+          mkdir -p "$out"
+          if [ -d plugins/pumbo-bridge-prox ]; then
+            plugins/pumbo-bridge-prox/build.sh
+            cp plugins/pumbo-bridge-prox/dist/pumbo-bridge.wasm "$out/PumboBridge-Proxy-$v.wasm"
+          fi
+          plugins/pumbo-bridge-pumpkin/build.sh
+          # Most Pumpkin builds land in dist/ of the workspace, some in their own folder.
+          src=dist
+          if [ -d plugins/pumbo-bridge-pumpkin/dist ]; then src=plugins/pumbo-bridge-pumpkin/dist; fi
+          for mc in 26.3 26.2; do
+            cp "$src/PumboBridge-$mc.wasm" "$out/PumboBridge-Pumpkin-$mc-$v.wasm"
+          done
+          cd "$out"
+          sha256sum -- *.wasm > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag --latest \
+            --title "PumboBridge ${GITHUB_REF_NAME#v}" --notes-file "$RUNNER_TEMP/notes.md" "$RUNNER_TEMP"/release/*
+
+      # A release made with this workflow's token does not start other workflows,
+      # so market.yml is started here, as its Run workflow button would.
+      - name: Pumpkin market
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run market.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" -f tag="$GITHUB_REF_NAME"

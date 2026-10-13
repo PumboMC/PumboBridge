@@ -23,7 +23,7 @@ jobs:
   market:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Plugin file and notes of the release
         id: release
@@ -41,7 +41,7 @@ jobs:
           test -f "dist/$f"
           body=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)
           # The market gets the changes first, then the links.
-          changes=$(printf '%s\n' "$body" | awk '/^## What.s changed/{f=1;next} f&&/^(## |Previous release)/{exit} f' | sed '/^$/d')
+          changes=$(printf '%s\n' "$body" | awk '/^## What.s changed/{f=1;next} f&&/^(## |Previous release|\*\*Full changelog)/{exit} f' | sed '/^$/d')
           [ -n "$changes" ] || changes=$(printf '%s\n' "$body" | sed -n '1{/^\*\*Full Changelog/!p;}')
           prev=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq "[.[] | select(.tag_name != \"$TAG\")][0].tag_name // empty")
           {
