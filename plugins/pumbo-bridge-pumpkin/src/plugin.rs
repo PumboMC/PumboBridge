@@ -1,9 +1,12 @@
 //! The WebAssembly plugin. Rules (spec §3.6):
 //!
-//! - only the task that runs every tick touches the socket, never blocking
+//! - the task that runs every tick touches the socket, never blocking
 //!   (`start-connect`/`finish-connect`, non-blocking reads, `check-write`);
-//! - handlers only record into their own cells, and no cell stays borrowed
-//!   across a Pumpkin call (a call may run other handlers of this plugin);
+//!   while it does not run (`/tick freeze`), event handlers do the socket
+//!   part and commands wait;
+//! - handlers otherwise only record into their own cells, and no cell stays
+//!   borrowed across a Pumpkin call (a call may run other handlers of this
+//!   plugin);
 //! - no subscription to an event our own calls fire (`crate::SUBSCRIBED`);
 //! - commands in a 2 ms or 64-command budget, at most one `teleport-world`
 //!   per tick.
@@ -12,14 +15,14 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, VecDeque};
 use std::time::{Duration, Instant};
 
-use pumbo_bridge_core::perms::{Change, Perms};
+use pumbo_bridge_core::perms::{Change, PUMBOPERMS, Perms, StoredExport, local_perms_alive};
 use pumbo_bridge_core::proto::api::{self, GameMode as Mode, PermsMode, Pos};
 use pumbo_bridge_core::proto::ciborium::Value;
 use pumbo_bridge_core::proto::uuid::Uuid as Id;
 use pumbo_bridge_core::proto::wire::{self, Event, Msg};
 use pumbo_bridge_core::proto::{err, method};
 use pumbo_bridge_core::session::{End, FAKE_PROXY_WAIT_MS, Incoming, Session};
-use pumbo_bridge_core::{Backoff, Changes, Config, TpsMeter};
+use pumbo_bridge_core::{Changes, Config, Reconnect, TaskWatch, TpsMeter};
 use wasip2::io::streams::{InputStream, OutputStream, StreamError};
 use wasip2::sockets::instance_network::instance_network;
 use wasip2::sockets::network::{ErrorCode, IpAddressFamily, IpSocketAddress, Ipv4SocketAddress};
@@ -65,12 +68,15 @@ struct Cmd {
     id: u64,
     method: String,
     args: Value,
+    /// When it came in ([`now_ms`]).
+    at: u64,
 }
 
-/// State of the per-tick task (never borrowed by handlers).
+/// State of the per-tick task; handlers use it only while that task does not run.
 struct Task {
     net: Net,
-    backoff: Backoff,
+    reconnect: Reconnect,
+    watch: TaskWatch,
     queue: VecDeque<Cmd>,
     tps: TpsMeter,
     ticks: u64,
@@ -80,8 +86,6 @@ struct Task {
     player_stats: Changes<Id, api::PlayerInfo>,
     next_perms_check: u64,
     last_entities_ms: u64,
-    /// Logged once per state, not once per retry.
-    last_log: String,
 }
 
 thread_local! {
@@ -114,6 +118,10 @@ fn info(msg: &str) {
 
 fn warn(msg: &str) {
     log(LogLevel::Warn, &format!("[PumboBridge] {msg}"));
+}
+
+fn error(msg: &str) {
+    log(LogLevel::Error, &format!("[PumboBridge] {msg}"));
 }
 
 fn random_bytes<const N: usize>() -> [u8; N] {
@@ -196,17 +204,21 @@ fn start_connect(cfg: &Config) -> Result<TcpSocket, ErrorCode> {
     Ok(sock)
 }
 
-fn say_once(t: &mut Task, msg: String) {
-    if t.last_log != msg {
-        info(&msg);
-        t.last_log = msg;
+/// The session or the attempt ended: what it queued goes, and the next
+/// attempt waits.
+fn down(t: &mut Task, why: &str, paired: bool, wait: Option<u64>) -> Net {
+    t.queue.clear();
+    let (line, wait) = t.reconnect.down(why, paired, wait, u32::from_le_bytes(random_bytes()));
+    match line {
+        Some(l) if paired => warn(&l),
+        Some(l) => info(&l),
+        None => {}
     }
+    Net::Idle { retry_at_ms: now_ms() + wait }
 }
 
-fn idle(t: &mut Task, why: &str, wait_ms: Option<u64>) -> Net {
-    let wait = wait_ms.unwrap_or_else(|| t.backoff.next_ms(u32::from_le_bytes(random_bytes())));
-    say_once(t, format!("not connected to the proxy: {why}; retrying"));
-    Net::Idle { retry_at_ms: now_ms() + wait }
+fn is_paired(t: &Task) -> bool {
+    matches!(&t.net, Net::Up { session, .. } if session.server().is_some())
 }
 
 /// One step of the connection: connect, read, write. Never blocks.
@@ -218,45 +230,45 @@ fn pump(t: &mut Task, cfg: &Config, server: &Server) -> Vec<Incoming> {
     t.net = match state {
         Net::Idle { retry_at_ms } if now >= retry_at_ms => match start_connect(cfg) {
             Ok(sock) => Net::Connecting { sock },
-            Err(ErrorCode::AccessDenied) => idle(
+            Err(ErrorCode::AccessDenied) => down(
                 t,
                 "network blocked by loopback_only; set [plugins.overrides.pumbobridge] loopback_only = false in config.toml of Pumpkin",
+                false,
                 Some(30_000),
             ),
-            Err(e) => idle(t, &format!("{e:?}"), None),
+            Err(e) => down(t, &format!("{e:?}"), false, None),
         },
         s @ Net::Idle { .. } => s,
         Net::Connecting { sock } => match sock.finish_connect() {
             Ok((rx, tx)) => {
                 let versions = (env!("CARGO_PKG_VERSION").to_string(), PUMPKIN.0.to_string(), PUMPKIN.1.to_string());
                 let caps = crate::CAPS.iter().map(|s| s.to_string()).collect();
-                let catalog = pumbo_common::pumpkin::COMMAND_NODES.iter().map(|s| s.to_string()).collect();
+                let catalog = pumbo_common::pumpkin::COMMAND_NODES
+                    .iter()
+                    .chain(pumbo_common::pumpkin::PUMBO_NODES)
+                    .map(|s| s.to_string())
+                    .collect();
                 let instance = INSTANCE.with(|i| *i.borrow());
                 let session = Box::new(Session::new(key, random_bytes(), instance, versions, caps, catalog, now));
                 Net::Up { rx, tx, _sock: sock, session }
             }
             Err(ErrorCode::WouldBlock) => Net::Connecting { sock },
-            Err(ErrorCode::ConnectionRefused) => idle(t, "the proxy is not listening", None),
-            Err(e) => idle(t, &format!("{e:?}"), None),
+            Err(ErrorCode::ConnectionRefused) => down(t, "the proxy is not listening", false, None),
+            Err(e) => down(t, &format!("{e:?}"), false, None),
         },
         Net::Up { rx, tx, _sock, mut session } => match io(&rx, &tx, &mut session, now, &mut got) {
             Ok(()) => Net::Up { rx, tx, _sock, session },
             Err(end) => {
                 drop((rx, tx));
                 got.clear();
-                t.queue.clear();
                 match end {
-                    End::FakeProxy => idle(
+                    End::FakeProxy => down(
                         t,
                         "the proxy did not prove the bridge key (a wrong key in config.yml, or not PumboProx)",
+                        false,
                         Some(FAKE_PROXY_WAIT_MS),
                     ),
-                    End::Closed(why) => {
-                        if session.server().is_some() {
-                            t.backoff.reset();
-                        }
-                        idle(t, &why, None)
-                    }
+                    End::Closed(why) => down(t, &why, session.server().is_some(), None),
                 }
             }
         },
@@ -299,13 +311,13 @@ fn session(t: &mut Task) -> Option<&mut Session> {
     }
 }
 
-/// Sends through the session; an error ends it at the next pump.
+/// Sends through the session; an error ends it.
 fn send(t: &mut Task, m: &Msg) {
     if let Some(s) = session(t)
         && let Err(End::Closed(why)) = s.send(m)
     {
-        warn(&format!("dropping the session: {why}"));
-        t.net = Net::Idle { retry_at_ms: now_ms() + 1000 };
+        let paired = s.server().is_some();
+        t.net = down(t, &why, paired, None);
     }
 }
 
@@ -317,57 +329,10 @@ fn tick(server: &Server) {
     let t0 = Instant::now();
     t.ticks += 1;
     t.tps.tick(now_ms());
-    let incoming = pump(&mut t, &cfg, server);
-    for i in incoming {
-        match i {
-            Incoming::Welcome { server: name, stats_ms, player_stats_ms } => {
-                say_once(&mut t, format!("connected to PumboProx as server {name}"));
-                t.backoff.reset();
-                t.stats_ms = (u64::from(stats_ms.max(1000)), u64::from(player_stats_ms.max(500)));
-                t.worlds = Changes::default();
-                t.player_stats = Changes::default();
-                let sync = Msg::Sync {
-                    players: server
-                        .get_all_players()
-                        .iter()
-                        .map(|p| wire::PlayerState {
-                            player: id_of(p),
-                            name: p.get_name(),
-                            pos: pos_of(p),
-                            gamemode: mode_of(p.get_gamemode()),
-                        })
-                        .collect(),
-                    worlds: worlds(server),
-                };
-                send(&mut t, &sync);
-                let mode = PERMS.with(|p| p.borrow().mode());
-                send(&mut t, &Msg::Ev { ev: Event::PermsMode { mode } });
-            }
-            Incoming::Cmd { id, method, args } => {
-                if t.queue.len() >= MAX_QUEUED {
-                    warn("over 1024 commands waiting, dropping the session");
-                    t.net = Net::Idle { retry_at_ms: now_ms() + 1000 };
-                    t.queue.clear();
-                    break;
-                }
-                t.queue.push_back(Cmd { id, method, args });
-            }
-        }
+    if let Some(line) = t.watch.ran(now_ms()) {
+        warn(&line);
     }
-    let paired = matches!(&t.net, Net::Up { session, .. } if session.server().is_some());
-    // Pairing pings seen by the handler.
-    let seen = SEEN.with(|s| std::mem::take(&mut *s.borrow_mut()));
-    if let Some(s) = session(&mut t) {
-        for n in seen {
-            let _ = s.seen(&n, now_ms());
-        }
-    }
-    let events = EVENTS.with(|e| std::mem::take(&mut *e.borrow_mut()));
-    if paired {
-        for ev in events {
-            send(&mut t, &Msg::Ev { ev });
-        }
-    }
+    let paired = net(&mut t, &cfg, server);
     let refresh = REFRESH.with(|r| std::mem::take(&mut *r.borrow_mut()));
     for id in refresh {
         if let Some(p) = server.get_player_by_uuid(uuid(id)) {
@@ -384,6 +349,10 @@ fn tick(server: &Server) {
     let mut done = 0;
     while done < MAX_PER_TICK && t0.elapsed() < BUDGET {
         let Some(c) = t.queue.pop_front() else { break };
+        if pumbo_bridge_core::too_old(c.at, now_ms()) {
+            send(&mut t, &Msg::Res { id: c.id, ok: None, err: Some(err::TIMEOUT.into()), detail: None });
+            continue;
+        }
         done += 1;
         let (r, world_change) = run(&mut t, server, &c);
         if let Some(r) = r {
@@ -399,12 +368,88 @@ fn tick(server: &Server) {
             break; // one teleport-world per tick (spec §3.6)
         }
     }
-    // Answers of this tick go out now, not a tick later.
+    flush_out(&mut t);
+    TASK.with(|c| *c.borrow_mut() = Some(t));
+}
+
+/// The socket part of a tick: connect, read, pairing and the events the
+/// handlers queued. Commands are only queued. Returns whether paired.
+fn net(t: &mut Task, cfg: &Config, server: &Server) -> bool {
+    let incoming = pump(t, cfg, server);
+    for i in incoming {
+        match i {
+            Incoming::Welcome { server: name, stats_ms, player_stats_ms } => {
+                info(&t.reconnect.paired(&name));
+                PERMS.with(|p| p.borrow_mut().session_started());
+                t.stats_ms = (u64::from(stats_ms.max(1000)), u64::from(player_stats_ms.max(500)));
+                t.worlds = Changes::default();
+                t.player_stats = Changes::default();
+                let sync = Msg::Sync {
+                    players: server
+                        .get_all_players()
+                        .iter()
+                        .map(|p| wire::PlayerState {
+                            player: id_of(p),
+                            name: p.get_name(),
+                            pos: pos_of(p),
+                            gamemode: mode_of(p.get_gamemode()),
+                        })
+                        .collect(),
+                    worlds: worlds(server),
+                };
+                send(t, &sync);
+                let mode = PERMS.with(|p| p.borrow().mode());
+                send(t, &Msg::Ev { ev: Event::PermsMode { mode } });
+            }
+            Incoming::Cmd { id, method, args } => {
+                if t.queue.len() >= MAX_QUEUED {
+                    let paired = is_paired(t);
+                    t.net = down(t, "over 1024 commands waiting", paired, None);
+                    break;
+                }
+                t.queue.push_back(Cmd { id, method, args, at: now_ms() });
+            }
+        }
+    }
+    let paired = is_paired(t);
+    // Pairing pings seen by the handler.
+    let seen = SEEN.with(|s| std::mem::take(&mut *s.borrow_mut()));
+    if let Some(s) = session(t) {
+        for n in seen {
+            let _ = s.seen(&n, now_ms());
+        }
+    }
+    let events = EVENTS.with(|e| std::mem::take(&mut *e.borrow_mut()));
+    if paired {
+        for ev in events {
+            send(t, &Msg::Ev { ev });
+        }
+    }
+    paired
+}
+
+/// What is queued goes out now, not a tick later.
+fn flush_out(t: &mut Task) {
     if let Net::Up { tx, session, .. } = &mut t.net
         && let Err(End::Closed(why)) = flush(tx, session)
     {
-        warn(&format!("write failed: {why}"));
-        t.net = Net::Idle { retry_at_ms: now_ms() + 1000 };
+        let paired = session.server().is_some();
+        t.net = down(t, &why, paired, None);
+    }
+}
+
+/// From event handlers: the socket part while the per-tick task does not
+/// run (`/tick freeze` stops Pumpkin's scheduler, not its events), so the
+/// proxy keeps getting answers when anything happens on the server.
+fn between_ticks(server: &Server) {
+    let Some(mut t) = TASK.with(|c| c.borrow_mut().take()) else { return };
+    let (stopped, line) = t.watch.stopped(now_ms());
+    if let Some(l) = line {
+        warn(l);
+    }
+    if stopped && let Some(cfg) = CFG.with(|c| c.borrow().clone()) {
+        net(&mut t, &cfg, server);
+        flush_out(&mut t);
     }
     TASK.with(|c| *c.borrow_mut() = Some(t));
 }
@@ -469,9 +514,9 @@ fn periodic(t: &mut Task, server: &Server) {
 /// A local PumboPerms has precedence (spec §5.3), unless it stepped back
 /// because the proxy's PumboPerms rules (`passive`, PumboPerms spec §16).
 fn perms_check(t: &mut Task, server: &Server) {
-    let reply = crate::papi::ipc::send_ipc_message("pumboperms", br#"{"op":"hello"}"#);
+    let reply = crate::papi::ipc::send_ipc_message(PUMBOPERMS, br#"{"op":"hello"}"#);
     let passive = matches!(&reply, Ok(Ok(b)) if serde_json::from_slice::<serde_json::Value>(b).ok().and_then(|v| v.get("passive")?.as_bool()) == Some(true));
-    let want = if reply.is_ok() && !passive { PermsMode::Local } else { PermsMode::Bridge };
+    let want = if local_perms_alive(&reply) && !passive { PermsMode::Local } else { PermsMode::Bridge };
     let (changes, switched) = PERMS.with(|p| p.borrow_mut().set_mode(want));
     if !switched {
         return;
@@ -566,8 +611,8 @@ fn run(t: &mut Task, server: &Server, c: &Cmd) -> (Option<Reply>, bool) {
         }
         method::PERMS_EXPORT => {
             if let Ok(a) = args::<api::PermsExport>(&c.args) {
-                save_export(&a);
-                PERMS.with(|p| p.borrow_mut().set_export(a));
+                let stored = PERMS.with(|p| p.borrow_mut().set_export(a, pumbo_common::clock::now_ms()).clone());
+                save_export(&stored);
             }
             return (None, false);
         }
@@ -848,14 +893,20 @@ fn show_items(server: &Server, a: api::ShowItems) -> Reply {
     ok(&())
 }
 
-fn save_export(e: &api::PermsExport) {
+/// Written whole or not at all (a temporary file renamed over the old one).
+fn save_export(e: &StoredExport) {
     let dir = DIR.with(|d| d.borrow().clone());
-    if let Ok(json) = serde_json::to_string(e) {
-        let _ = std::fs::write(format!("{dir}/perms-export.json"), json);
+    let (path, tmp) = (format!("{dir}/perms-export.json"), format!("{dir}/perms-export.json.tmp"));
+    let result = serde_json::to_string(e)
+        .map_err(|e| e.to_string())
+        .and_then(|json| std::fs::write(&tmp, json).map_err(|e| e.to_string()))
+        .and_then(|()| std::fs::rename(&tmp, &path).map_err(|e| e.to_string()));
+    if let Err(e) = result {
+        warn(&format!("cannot save {path}: {e}"));
     }
 }
 
-fn load_export(dir: &str) -> Option<api::PermsExport> {
+fn load_export(dir: &str) -> Option<StoredExport> {
     serde_json::from_str(&std::fs::read_to_string(format!("{dir}/perms-export.json")).ok()?).ok()
 }
 
@@ -863,7 +914,7 @@ fn load_export(dir: &str) -> Option<api::PermsExport> {
 
 struct Ping;
 impl EventHandler<ServerListPingEvent> for Ping {
-    fn handle(&self, _s: Server, e: EventData<ServerListPingEvent>) -> EventData<ServerListPingEvent> {
+    fn handle(&self, server: Server, e: EventData<ServerListPingEvent>) -> EventData<ServerListPingEvent> {
         if let Some(n) = wire::ping_nonce(&e.hostname) {
             SEEN.with(|s| {
                 let mut s = s.borrow_mut();
@@ -872,6 +923,7 @@ impl EventHandler<ServerListPingEvent> for Ping {
                 }
             });
         }
+        between_ticks(&server);
         e
     }
 }
@@ -897,6 +949,7 @@ impl EventHandler<PlayerJoinEvent> for Join {
             ));
         }
         queue_event(Event::Join { player: id, name, pos: pos_of(p) });
+        between_ticks(&server);
         e
     }
 }
@@ -911,8 +964,8 @@ impl EventHandler<PlayerLeaveEvent> for Leave {
                 e.player.unset_permission(n);
             }
         }
-        let _ = server;
         queue_event(Event::Leave { player: id, pos: pos_of(&e.player) });
+        between_ticks(&server);
         e
     }
 }
@@ -944,7 +997,7 @@ impl EventHandler<PlayerRespawnEvent> for Respawn {
 /// which Pumpkin does not check (`pumbo_common::pumpkin::UNGUARDED_ALIASES`).
 struct AliasGuard;
 impl EventHandler<PlayerCommandSendEvent> for AliasGuard {
-    fn handle(&self, _s: Server, mut e: EventData<PlayerCommandSendEvent>) -> EventData<PlayerCommandSendEvent> {
+    fn handle(&self, server: Server, mut e: EventData<PlayerCommandSendEvent>) -> EventData<PlayerCommandSendEvent> {
         if !e.cancelled
             && let Some(node) = pumbo_common::pumpkin::unguarded_alias(&e.command)
             && !e.player.has_permission(node)
@@ -953,6 +1006,7 @@ impl EventHandler<PlayerCommandSendEvent> for AliasGuard {
             let t = TextComponent::translate("command.unknown.command", Vec::new()).color_named(NamedColor::Red);
             e.player.send_system_message(t, false);
         }
+        between_ticks(&server);
         e
     }
 }
@@ -982,6 +1036,7 @@ impl Plugin for PumboBridge {
     }
 
     fn on_load(&self, context: Context) -> Result<(), String> {
+        pumbo_common::panic::install(error);
         let _ = started();
         let dir = context.get_data_folder();
         let path = format!("{dir}/config.yml");
@@ -1001,9 +1056,13 @@ impl Plugin for PumboBridge {
                 "proxy {a}.{b}.{c}.{d}:{port} is outside loopback and private networks; bridge frames are signed, not encrypted: use a tunnel"
             ));
         }
-        if let Some(e) = load_export(&dir) {
-            PERMS.with(|p| p.borrow_mut().set_export(e));
-        }
+        PERMS.with(|p| {
+            let mut p = p.borrow_mut();
+            p.set_connected(cfg.key.is_some());
+            if let Some(e) = load_export(&dir) {
+                p.load_export(e);
+            }
+        });
         DIR.with(|d| *d.borrow_mut() = dir);
         SERVER.with(|s| *s.borrow_mut() = Some(context.get_server()));
         INSTANCE.with(|i| *i.borrow_mut() = random_bytes());
@@ -1011,7 +1070,8 @@ impl Plugin for PumboBridge {
         TASK.with(|t| {
             *t.borrow_mut() = Some(Task {
                 net: Net::Idle { retry_at_ms: 0 },
-                backoff: Backoff::default(),
+                reconnect: Reconnect::default(),
+                watch: TaskWatch::default(),
                 queue: VecDeque::new(),
                 tps: TpsMeter::default(),
                 ticks: 0,
@@ -1021,7 +1081,6 @@ impl Plugin for PumboBridge {
                 player_stats: Changes::default(),
                 next_perms_check: 0,
                 last_entities_ms: 0,
-                last_log: String::new(),
             })
         });
         // Spec §3.6: nothing our own calls fire (crate::SUBSCRIBED).
@@ -1050,9 +1109,9 @@ impl Plugin for PumboBridge {
         Ok(())
     }
 
-    fn handle_ipc_message(&self, _sender: String, message: Vec<u8>) -> Result<Vec<u8>, String> {
+    fn handle_ipc_message(&self, sender: String, message: Vec<u8>) -> Result<Vec<u8>, String> {
         let before = PERMS.with(|p| p.borrow().mode());
-        let (reply, mut changes) = PERMS.with(|p| p.borrow_mut().ipc(&message, env!("CARGO_PKG_VERSION")));
+        let (reply, mut changes) = PERMS.with(|p| p.borrow_mut().ipc(&sender, &message, env!("CARGO_PKG_VERSION")));
         let after = PERMS.with(|p| p.borrow().mode());
         SERVER.with(|s| {
             let s = s.borrow();
