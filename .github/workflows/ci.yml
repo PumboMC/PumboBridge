@@ -1,13 +1,13 @@
 # Format, lints, tests, the dependency policy and the plugin builds on every
-# pull request into dev or main and every push to dev. Branch protection can
-# require the job "check".
+# pull request into main and every push to main. Branch protection can
+# require the job "check". RustSec advisories run in audit.yml.
 name: ci
 
 on:
   push:
-    branches: [dev]
+    branches: [main]
   pull_request:
-    branches: [dev, main]
+    branches: [main]
 
 permissions:
   contents: read

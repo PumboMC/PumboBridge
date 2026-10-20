@@ -1,4 +1,4 @@
-<!-- Pull requests go to `dev`; `main` only takes releases from `dev`. Title: FEAT:, FIX:, DOCS: or DEPS: and a short summary, at most 72 characters. -->
+<!-- Pull requests go to `main`. Title: FEAT:, FIX:, DOCS: or DEPS: and a short summary, at most 72 characters. -->
 
 ## What
 
