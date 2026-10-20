@@ -51,6 +51,6 @@ jobs:
       - name: Tests
         run: cargo test --workspace --locked
       - name: Dependency policy
-        run: cargo deny --locked check
+        run: cargo deny --locked check bans licenses sources
       - name: Build
         run: for b in plugins/*/build.sh; do "$b"; done
