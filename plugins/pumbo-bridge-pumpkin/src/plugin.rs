@@ -41,8 +41,15 @@ use crate::papi::text::TextComponent;
 use crate::papi::uuid::Uuid;
 use crate::papi::{Context, ItemStack, Player, Plugin, PluginMetadata, Screen, Server, permissions};
 
+// build.sh sets PUMBO_PUMPKIN=0.2.0 for the file built against api 0.2.0.
 #[cfg(feature = "mc263")]
-const PUMPKIN: (&str, &str) = ("0.2.0", "26.3");
+const PUMPKIN: (&str, &str) = (
+    match option_env!("PUMBO_PUMPKIN") {
+        Some(v) => v,
+        None => "0.2.1",
+    },
+    "26.3",
+);
 #[cfg(feature = "mc262")]
 const PUMPKIN: (&str, &str) = ("0.1.0-dev", "26.2");
 
