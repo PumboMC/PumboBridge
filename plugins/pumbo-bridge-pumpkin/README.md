@@ -8,7 +8,8 @@ The bridge has no commands and keeps no player data apart from a copy of the pro
 
 | File | Pumpkin | Minecraft |
 | --- | --- | --- |
-| `PumboBridge-26.3.wasm` | release `0.2.0+26.3-26.51` | 26.3 |
+| `PumboBridge-26.3.wasm` | release `0.2.1+26.3-26.51` | 26.3 |
+| `PumboBridge-0.2.0.wasm` | release `0.2.0+26.3-26.51` | 26.3 |
 | `PumboBridge-26.2.wasm` | release `0.1.0-dev+26.2-26.45` | 26.2 |
 
 A new Pumpkin version needs a new build of the bridge only; a new Minecraft version for players changes only the proxy.
@@ -84,7 +85,7 @@ A node without a decision is left to Pumpkin's operator levels, and so is everyt
 
 **Unless the proxy's PumboPerms rules.** With PumboPerms on PumboProx, the proxy's export holds only the flag that it rules (`proxy-rules`); a local PumboPerms then steps back: it hands its attachments to the bridge (`take-permissions`), the bridge takes them off (players offline now at their next join, before the proxy's set) and writes the proxy's decisions. Ranks are then set with `/pp` on the proxy, with `server=<name>` for this server.
 
-**Aliases Pumpkin leaves open.** Pumpkin 0.2.0 and 0.1.0-dev run `/tp`, `/xp`, `/banip` and `/pardonip` without any permission check (the alias of a command without an executor of its own gets no requirement; fixed upstream after 0.2.0, Pumpkin #3801), so on a plain server every player may teleport, give experience and ban IPs. The bridge checks these four, typed directly or after `run` in `/execute`, against the permission of their command (`minecraft:command.teleport`, `.experience`, `.banip`, `.pardonip`: operator level 2 or 3, or a rank) and answers a player without it like an unknown command.
+**Aliases Pumpkin leaves open.** Pumpkin 0.2.0 and 0.1.0-dev run `/tp`, `/xp`, `/banip` and `/pardonip` without any permission check (the alias of a command without an executor of its own gets no requirement; fixed in Pumpkin 0.2.1, Pumpkin #3801), so on a plain server every player may teleport, give experience and ban IPs. The bridge checks these four, typed directly or after `run` in `/execute`, against the permission of their command (`minecraft:command.teleport`, `.experience`, `.banip`, `.pardonip`: operator level 2 or 3, or a rank) and answers a player without it like an unknown command.
 
 ## For proxy plugins
 
@@ -115,7 +116,7 @@ The proxy publishes `pumbo:bridge-event@1.0` (join, leave, death, respawn, world
 ## Building
 
 ```sh
-./build.sh          # dist/PumboBridge-26.3.wasm and dist/PumboBridge-26.2.wasm
+./build.sh          # dist/PumboBridge-26.3.wasm, dist/PumboBridge-0.2.0.wasm and dist/PumboBridge-26.2.wasm
 cargo test -p pumbo-bridge-core -p pumbo-bridge-pumpkin
 ```
 

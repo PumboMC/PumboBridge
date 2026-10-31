@@ -10,7 +10,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
   <img src="https://img.shields.io/badge/built%20with-Rust-orange?logo=rust" alt="Built with Rust">
   <img src="https://img.shields.io/badge/plugin-WebAssembly-654FF0?logo=webassembly&logoColor=white" alt="WebAssembly plugin">
-  <a href="https://github.com/Pumpkin-MC/Pumpkin"><img src="https://img.shields.io/badge/Pumpkin-0.2.0%20%2826.3%29-F28C28" alt="Pumpkin 0.2.0 (26.3)"></a>
+  <a href="https://github.com/Pumpkin-MC/Pumpkin"><img src="https://img.shields.io/badge/Pumpkin-0.2.1%20%2826.3%29-F28C28" alt="Pumpkin 0.2.1 (26.3)"></a>
   <a href="https://github.com/Pumpkin-MC/Pumpkin"><img src="https://img.shields.io/badge/Pumpkin-0.1.0--dev%20%2826.2%29-F28C28" alt="Pumpkin 0.1.0-dev (26.2)"></a>
   <a href="https://github.com/PumboMC/PumboProx"><img src="https://img.shields.io/badge/PumboProx-required-62B47A" alt="PumboProx: required"></a>
   <img src="https://img.shields.io/badge/status-beta-yellow" alt="Status: beta">
@@ -64,7 +64,7 @@ PumboBridge has two halves. The proxy half is built into PumboProx, so there is 
 
 | Half | File | Where it goes | What it does |
 | --- | --- | --- | --- |
-| 🎃 **Server plugin** | `PumboBridge-Pumpkin-26.3-<version>.wasm` or `PumboBridge-Pumpkin-26.2-<version>.wasm` | `plugins/` of every Pumpkin server | Connects to the proxy and runs what it asks on this server. |
+| 🎃 **Server plugin** | `PumboBridge-Pumpkin-26.3-<version>.wasm`, `PumboBridge-Pumpkin-0.2.0-<version>.wasm` or `PumboBridge-Pumpkin-26.2-<version>.wasm` | `plugins/` of every Pumpkin server | Connects to the proxy and runs what it asks on this server. |
 | 🌐 **Proxy side** | built into PumboProx | `bridge:` in `pumboprox.yml` | Accepts the bridges, signs the connection and offers the `pumbo:bridge` service to proxy plugins. |
 
 A new Pumpkin version needs only a new build of the bridge. A new Minecraft version for players changes only the proxy.
@@ -149,7 +149,7 @@ rustup target add wasm32-wasip2
 
 Cargo fetches the bridge protocol (`pumbo-bridge-proto`) and `pumbo-common` from the [PumboProx](https://github.com/PumboMC/PumboProx) repository on the first build.
 
-Both versions (`dist/PumboBridge-26.3.wasm` and `dist/PumboBridge-26.2.wasm`):
+All three versions (`dist/PumboBridge-26.3.wasm`, `dist/PumboBridge-0.2.0.wasm` and `dist/PumboBridge-26.2.wasm`):
 
 ```sh
 plugins/pumbo-bridge-pumpkin/build.sh

@@ -25,7 +25,7 @@ The proxy moves players between servers by itself. The bridge lets it and its pl
 3. Approve `network.tcp.connect`, `fs.read.data` and `fs.write.data` when Pumpkin asks, or add them to `allowed_permissions` in `pumpkin.toml`.
 4. `/prox bridge` on the proxy lists every server and its bridge.
 
-Keep the connection on `127.0.0.1`, a private network or a tunnel: it is signed, not encrypted. Works with Pumpkin 0.2.0 (Minecraft 26.3) and PumboProx 0.1.1-beta.
+Keep the connection on `127.0.0.1`, a private network or a tunnel: it is signed, not encrypted. Works with Pumpkin 0.2.1 (Minecraft 26.3); for Pumpkin 0.2.0 take `PumboBridge-Pumpkin-0.2.0-<version>.wasm` from the [releases on GitHub](https://github.com/PumboMC/PumboBridge/releases). Needs PumboProx 0.1.1-beta.
 
 ---
 
