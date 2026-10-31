@@ -19,6 +19,7 @@
 <p align="center">
   <a href="#features">Features</a> ·
   <a href="#two-builds">Two builds</a> ·
+  <a href="#pumpkin-versions">Pumpkin versions</a> ·
   <a href="#installation">Installation</a> ·
   <a href="#configuration">Configuration</a> ·
   <a href="#commands-and-permissions">Commands</a> ·
@@ -64,10 +65,20 @@ PumboBridge has two halves. The proxy half is built into PumboProx, so there is 
 
 | Half | File | Where it goes | What it does |
 | --- | --- | --- | --- |
-| 🎃 **Server plugin** | `PumboBridge-Pumpkin-26.3-<version>.wasm`, `PumboBridge-Pumpkin-0.2.0-<version>.wasm` or `PumboBridge-Pumpkin-26.2-<version>.wasm` | `plugins/` of every Pumpkin server | Connects to the proxy and runs what it asks on this server. |
+| 🎃 **Server plugin** | One file per Pumpkin release, see [Pumpkin versions](#pumpkin-versions) | `plugins/` of every Pumpkin server | Connects to the proxy and runs what it asks on this server. |
 | 🌐 **Proxy side** | built into PumboProx | `bridge:` in `pumboprox.yml` | Accepts the bridges, signs the connection and offers the `pumbo:bridge` service to proxy plugins. |
 
 A new Pumpkin version needs only a new build of the bridge. A new Minecraft version for players changes only the proxy.
+
+## Pumpkin versions
+
+Each Pumpkin release loads only its own file:
+
+- Pumpkin 0.2.1+26.3-26.51: `PumboBridge-Pumpkin-26.3-<version>.wasm` from GitHub, or the file on the Pumpkin market
+- Pumpkin 0.2.0+26.3-26.51: `PumboBridge-Pumpkin-0.2.0-<version>.wasm` from GitHub
+- Pumpkin 0.1.0-dev+26.2-26.45: `PumboBridge-Pumpkin-26.2-<version>.wasm` from GitHub
+
+The GitHub files are in the [latest release](https://github.com/PumboMC/PumboBridge/releases/latest).
 
 ## Installation
 
@@ -87,7 +98,7 @@ A new Pumpkin version needs only a new build of the bridge. A new Minecraft vers
 
    <img src="assets/bridge-key.png" alt="/prox bridge key in the game, with part of the key hidden" width="100%">
 
-2. **Each server.** Put the file that matches your Pumpkin version into `plugins/` and start the server once. It creates `plugins/data/pumbobridge/config.yml`. Put the proxy's address and the key there and restart the server.
+2. **Each server.** Put the file that [matches your Pumpkin version](#pumpkin-versions) into `plugins/` and start the server once. It creates `plugins/data/pumbobridge/config.yml`. Put the proxy's address and the key there and restart the server.
 
 3. **Pumpkin's plugin sandbox.** The bridge needs `network.tcp.connect`, `fs.read.data` and `fs.write.data`. Pumpkin asks about them in the console on the first start. To approve them in advance, add them to `allowed_permissions` in `[plugins]` of `pumpkin.toml`.
 
