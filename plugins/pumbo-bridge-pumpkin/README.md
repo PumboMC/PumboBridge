@@ -44,7 +44,7 @@ A new Pumpkin version needs a new build of the bridge only; a new Minecraft vers
 
 4. **Check.** `/prox bridge` in game (permission `pumbo.proxy.bridge`) or `prox bridge` in the proxy console lists every server with the state of its bridge (`connected`, `lost`, `none` or `rejected`), the versions of the bridge and its contract, the ping and since when.
 
-The connection is signed with the key (every frame has a sequence number and an HMAC), not encrypted, like Velocity forwarding: keep it on 127.0.0.1, a private network or a tunnel (WireGuard, Tailscale). The bridge warns about a public proxy address.
+The connection is signed with the key (every frame has a sequence number and an HMAC), not encrypted, like modern player forwarding: keep it on 127.0.0.1, a private network or a tunnel (WireGuard, Tailscale). The bridge warns about a public proxy address.
 
 If the connection drops, the bridge logs `lost the proxy connection: <reason>, reconnecting` and tries again after 1, 2, 5 and 10 s, then every 30 s, each wait up to a fifth longer at random. A failed attempt logs `not connected to the proxy: <reason>; retrying` once per reason. When the other end cannot prove the key (a wrong key, or not PumboProx on that port), the bridge waits 30 s before the next attempt. Back online it logs `connected to PumboProx as server <name>` and gets the ranks of the players on the server again; until then they keep the ranks they had. The proxy logs every close with its reason, for example `bridge on survival closed: silent for 15 s (no answer to pings)`.
 

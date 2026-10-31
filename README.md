@@ -95,7 +95,7 @@ A new Pumpkin version needs only a new build of the bridge. A new Minecraft vers
 
    <img src="assets/bridge-status.png" alt="/prox bridge in the game: lobby and survival connected, version 0.1.0 / 1.0, ping 35 ms, connected for 50 minutes" width="100%">
 
-The connection is signed, not encrypted, like Velocity forwarding. Keep it on `127.0.0.1`, a private network or a tunnel (WireGuard, Tailscale). The bridge warns when the proxy address is public.
+The connection is signed, not encrypted, like modern player forwarding. Keep it on `127.0.0.1`, a private network or a tunnel (WireGuard, Tailscale). The bridge warns when the proxy address is public.
 
 ## Configuration
 
