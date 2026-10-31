@@ -471,7 +471,7 @@ dependencies = [
 
 [[package]]
 name = "pumbo-bridge-core"
-version = "0.1.2-beta"
+version = "0.1.3-beta"
 dependencies = [
  "pumbo-bridge-proto",
  "pumbo-common",
@@ -493,7 +493,7 @@ dependencies = [
 
 [[package]]
 name = "pumbo-bridge-pumpkin"
-version = "0.1.2-beta"
+version = "0.1.3-beta"
 dependencies = [
  "pumbo-bridge-core",
  "pumbo-common",
