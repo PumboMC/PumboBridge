@@ -53,7 +53,7 @@ cargo deny check
 2. Keep one topic per pull request.
 3. Write commit messages as one plain sentence that says what the change does, starting with a capital letter and without a full stop. Prefix the part of the code when that helps, for example `PumboBridge for PumboProx: test that a broken config is refused on reload`. We don't use Conventional Commits prefixes (`feat:`, `fix:`).
 4. Add or update tests for what you change and run the checks above.
-5. Open the pull request against `main` and fill in the template: what changes, why, and how you tested it (with the Pumpkin, PumboProx and client versions if you tried it in the game). The title starts with `FEAT:`, `FIX:`, `DOCS:` or `DEPS:` (dependency updates) and a space and has at most 72 characters, for example `FIX: keep comments in the config on reload`.
+5. Open the pull request against `main` and fill in the template: what changes, why, and how you tested it (with the Pumpkin, PumboProx and client versions if you tried it in the game). The title has the form `type(scope): description` (Conventional Commits; the type is `feat`, `fix`, `docs`, `refactor`, `test`, `ci` or `chore`, with `chore(deps)` for dependency updates) and at most 72 characters, for example `fix(config): keep comments on reload`.
 
 Changes to the shared libraries go to [PumboProx](https://github.com/PumboMC/PumboProx).
 
