@@ -27,9 +27,9 @@ dbg_macro = "deny"
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-pumbo-common = { git = "https://github.com/PumboMC/PumboProx", branch = "dev" }
+pumbo-common = { git = "https://github.com/PumboMC/PumboProx", rev = "aebc9a76f30422fdd85ce2a545c8019ee4aea919" }
 pumbo-bridge-core = { path = "crates/pumbo-bridge-core" }
-pumbo-bridge-proto = { git = "https://github.com/PumboMC/PumboProx", branch = "dev" }
+pumbo-bridge-proto = { git = "https://github.com/PumboMC/PumboProx", rev = "aebc9a76f30422fdd85ce2a545c8019ee4aea919" }
 
 [profile.release]
 opt-level = "s"
