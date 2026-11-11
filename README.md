@@ -108,6 +108,9 @@ The GitHub files are in the [latest release](https://github.com/PumboMC/PumboBri
 
 The connection is signed, not encrypted, like modern player forwarding. Keep it on `127.0.0.1`, a private network or a tunnel (WireGuard, Tailscale). The bridge warns when the proxy address is public.
 
+> [!WARNING]
+> On Pumpkin 0.2.1 typing a plugin command in the server console can crash the server. This is a bug in Pumpkin. Until it is fixed, set `use_tty = false` in `[commands]` of `pumpkin.toml`. The console still takes commands, without Tab completion.
+
 ## Configuration
 
 The config file is written on the first start, with comments. It is the same on every server. Changes need a server restart.
