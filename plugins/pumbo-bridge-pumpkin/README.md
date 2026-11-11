@@ -32,13 +32,21 @@ A new Pumpkin version needs a new build of the bridge only; a new Minecraft vers
    key: "<64 hex digits from `prox bridge key`>"
    ```
 
-3. **Pumpkin's plugin sandbox.** The bridge asks for `network.tcp.connect`, `fs.read.data` and `fs.write.data`. With `ask_permission_confirmation = true` (Pumpkin's default) the first start asks in the console; to approve it in advance use `allowed_permissions = ["network.tcp.connect", "fs.read.data", "fs.write.data"]` in `[plugins]` of `pumpkin.toml`. Keep `loopback_only = true` for all plugins when the proxy runs on the same machine. When the proxy runs on another machine, open only the bridge:
+3. **Pumpkin's plugin sandbox.** The bridge asks for `network.tcp.connect`, `fs.read.data` and `fs.write.data`. With `ask_permission_confirmation = true` (Pumpkin's default) the first start asks in the console. On a hosting panel without a terminal Pumpkin cannot ask: it refuses and remembers the refusal in `plugins/permission_cache.json`, so the bridge never loads. Approve them for the bridge only; this also overrides a remembered refusal:
+
+   ```toml
+   [plugins.overrides.pumbobridge]
+   allowed_permissions = ["network.tcp.connect", "fs.read.data", "fs.write.data"]
+   ```
+
+   Write the names with dots: the colon form from Pumpkin's examples never matches. Keep `loopback_only = true` for all plugins when the proxy runs on the same machine. When the proxy runs on another machine, open only the bridge, in the same table:
 
    ```toml
    [plugins]
    loopback_only = true
 
    [plugins.overrides.pumbobridge]
+   allowed_permissions = ["network.tcp.connect", "fs.read.data", "fs.write.data"]
    loopback_only = false
    ```
 

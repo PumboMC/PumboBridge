@@ -100,7 +100,14 @@ The GitHub files are in the [latest release](https://github.com/PumboMC/PumboBri
 
 2. **Each server.** Put the file that [matches your Pumpkin version](#pumpkin-versions) into `plugins/` and start the server once. It creates `plugins/data/pumbobridge/config.yml`. Put the proxy's address and the key there and restart the server.
 
-3. **Pumpkin's plugin sandbox.** The bridge needs `network.tcp.connect`, `fs.read.data` and `fs.write.data`. Pumpkin asks about them in the console on the first start. To approve them in advance, add them to `allowed_permissions` in `[plugins]` of `pumpkin.toml`.
+3. **Pumpkin's plugin sandbox.** The bridge needs `network.tcp.connect`, `fs.read.data` and `fs.write.data`. Pumpkin asks about them in the console on the first start. On a hosting panel without a terminal it cannot ask: it refuses and remembers the refusal in `plugins/permission_cache.json`, so the bridge never loads. Approve them for the bridge only in `pumpkin.toml`:
+
+   ```toml
+   [plugins.overrides.pumbobridge]
+   allowed_permissions = ["network.tcp.connect", "fs.read.data", "fs.write.data"]
+   ```
+
+   This also overrides a remembered refusal. Write the names with dots: the colon form from Pumpkin's examples never matches.
 
 4. **Check.** `/prox bridge` in the proxy lists every server and its bridge.
 
