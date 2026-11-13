@@ -120,15 +120,15 @@ fn now_ms() -> u64 {
 }
 
 fn info(msg: &str) {
-    log(LogLevel::Info, &format!("[PumboBridge] {msg}"));
+    log(LogLevel::Info, &crate::log_line(msg));
 }
 
 fn warn(msg: &str) {
-    log(LogLevel::Warn, &format!("[PumboBridge] {msg}"));
+    log(LogLevel::Warn, &crate::log_line(msg));
 }
 
 fn error(msg: &str) {
-    log(LogLevel::Error, &format!("[PumboBridge] {msg}"));
+    log(LogLevel::Error, &crate::log_line(msg));
 }
 
 fn random_bytes<const N: usize>() -> [u8; N] {

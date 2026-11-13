@@ -99,6 +99,12 @@ pub const CAPS: &[&str] = &[
     method::Q_ENTITIES,
 ];
 
+/// A line for the server log, in the format of the other Pumbo plugins:
+/// `PumboBridge: connected to the proxy at 127.0.0.1:25578.`
+pub fn log_line(msg: &str) -> String {
+    format!("PumboBridge: {msg}")
+}
+
 /// `minecraft:speed` → `speed`.
 pub fn bare(id: &str) -> &str {
     id.strip_prefix("minecraft:").unwrap_or(id)
@@ -153,6 +159,13 @@ mod tests {
         }
         assert!(!CAPS.contains(&"kill") && !CAPS.contains(&"console") && !CAPS.contains(&method::GUARD_RULES));
         assert_eq!((bare("minecraft:speed"), namespaced("stone").as_str()), ("speed", "minecraft:stone"));
+    }
+
+    #[test]
+    fn log_lines_start_with_the_plugin_name() {
+        let line = log_line("connected to the proxy at 127.0.0.1:25578.");
+        assert_eq!(line, "PumboBridge: connected to the proxy at 127.0.0.1:25578.");
+        assert!(!line.starts_with('['));
     }
 
     #[test]

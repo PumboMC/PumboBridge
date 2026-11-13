@@ -2,6 +2,12 @@
 
 All notable changes to PumboBridge, one section per release. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+
+- Log lines start with `PumboBridge:`, like the other Pumbo plugins.
+
 ## [0.1.3-beta] - 2026-10-30
 
 Update PumboBridge together with PumboPerms.
