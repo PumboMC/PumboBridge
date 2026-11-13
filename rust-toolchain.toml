@@ -1,0 +1,7 @@
+# The one Rust version for local builds, CI and releases. Workflows install it
+# with `rustup toolchain install`; raise it in a commit of its own.
+[toolchain]
+channel = "1.100.0"
+profile = "minimal"
+components = ["rustfmt", "clippy"]
+targets = ["wasm32-wasip2"]

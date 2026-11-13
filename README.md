@@ -162,11 +162,7 @@ Not in this version: `kill`, console commands, and enchantments or exact item co
 
 ## Building
 
-You need Rust stable with the WebAssembly target:
-
-```sh
-rustup target add wasm32-wasip2
-```
+You need [rustup](https://rustup.rs). The Rust version and the WebAssembly target are pinned in `rust-toolchain.toml`, and rustup installs them on the first build.
 
 Cargo fetches the bridge protocol (`pumbo-bridge-proto`) and `pumbo-common` from the [PumboProx](https://github.com/PumboMC/PumboProx) repository on the first build.
 

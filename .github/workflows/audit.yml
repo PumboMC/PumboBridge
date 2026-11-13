@@ -23,9 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - name: Rust
-        run: |
-          rustup toolchain install stable --profile minimal
-          rustup default stable
+        run: rustup toolchain install
       - uses: Swatinem/rust-cache@v2.9.2
       - name: cargo-deny
         run: cargo install cargo-deny --locked --version 0.20.2

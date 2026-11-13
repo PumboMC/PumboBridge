@@ -50,9 +50,7 @@ jobs:
           cat "$RUNNER_TEMP/notes.md"
 
       - name: Rust
-        run: |
-          rustup toolchain install stable --profile minimal -t wasm32-wasip2
-          rustup default stable
+        run: rustup toolchain install
 
       - name: Build
         run: |

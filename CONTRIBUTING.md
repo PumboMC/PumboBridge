@@ -6,7 +6,7 @@ Found a security problem? Don't open an issue, see [SECURITY.md](SECURITY.md).
 
 ## What you need
 
-- **Rust stable** with the WebAssembly target: `rustup target add wasm32-wasip2`
+- **Rust** through [rustup](https://rustup.rs): `rust-toolchain.toml` pins the version and the WebAssembly target, and rustup installs both on the first build
 - **git** that can reach GitHub: Cargo fetches the shared Pumbo libraries (`pumbo-common`, `pumbo-sdk`, `pumbo-contracts`, `pumbo-bridge-proto`) from [PumboProx](https://github.com/PumboMC/PumboProx) with your git command line (see `.cargo/config.toml`)
 - [`cargo-deny`](https://github.com/EmbarkStudios/cargo-deny) for the license and source check: `cargo install cargo-deny --locked`
 - To try the plugin: a [Pumpkin](https://github.com/Pumpkin-MC/Pumpkin) server, and [PumboProx](https://github.com/PumboMC/PumboProx) for the proxy build. PumboProx has a script that starts a proxy with two Pumpkin servers on your machine (`tools/dev-network.sh`, see its CONTRIBUTING.md).
