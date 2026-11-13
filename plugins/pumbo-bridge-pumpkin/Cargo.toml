@@ -30,7 +30,7 @@ serde_json.workspace = true
 api263 = { package = "pumpkin-plugin-api", version = ">=0.2.0, <0.2.2", optional = true }
 api262 = { package = "pumpkin-plugin-api", version = "=0.1.0-dev", optional = true }
 # Non-blocking wasi:sockets (connect, read, write) from the per-tick task.
-wasip2 = "1"
+wasip2 = "=1.0.4+wasi-0.2.12"
 
 [lints]
 workspace = true
