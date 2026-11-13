@@ -56,3 +56,25 @@ jobs:
       # build.sh pins the lockfile to api 0.2.0 for one file and must put it back.
       - name: Lockfile unchanged
         run: git diff --exit-code Cargo.lock
+
+  # Pumpkin is moving plugins to wasm32-wasip3. This job builds the Pumpkin
+  # plugin for it and keeps the file for 14 days. Releases stay on
+  # wasm32-wasip2 until a Pumpkin release loads the wasm32-wasip3 file
+  # (Pumpkin 0.2.2 refuses it from plugins on plugin API 0.1).
+  wasip3:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Rust
+        run: |
+          rustup toolchain install
+          rustup target add wasm32-wasip3
+      - uses: Swatinem/rust-cache@v2.9.2
+      - name: Build
+        run: cargo build -p pumbo-bridge-pumpkin --release --target wasm32-wasip3 --locked
+      - name: Keep the plugin file
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: wasip3
+          path: target/wasm32-wasip3/release/pumbo_bridge_pumpkin.wasm
+          retention-days: 14
