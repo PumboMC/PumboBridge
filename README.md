@@ -34,9 +34,6 @@
 
 <p align="center"><b>Running more than one server?</b> <a href="https://github.com/PumboMC/PumboProx">PumboProx</a> is the proxy for Pumpkin networks, with plugins in WebAssembly.<br>PumboBridge is its server half: it connects each Pumpkin server to the proxy.</p>
 
-> [!NOTE]
-> PumboBridge is in **beta** (0.1.3-beta). Try it on a test network before you put players on it.
-
 ## What it does
 
 PumboBridge connects each Pumpkin server to your PumboProx proxy. The proxy moves players between servers on its own. The bridge lets it and its plugins act inside a server as well: teleport players within the world, change game modes, heal, read and change inventories, and ask about players and the server. It also brings the proxy's ranks to every server. The bridge has no commands of its own and keeps no player data: it only does what the proxy asks.
