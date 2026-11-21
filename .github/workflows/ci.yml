@@ -30,7 +30,7 @@ jobs:
       # The version, components and targets come from rust-toolchain.toml.
       - name: Rust
         run: rustup toolchain install
-      - uses: Swatinem/rust-cache@v2.9.2
+      - uses: Swatinem/rust-cache@v2.9.3
       - name: cargo-deny
         run: cargo install cargo-deny --locked --version 0.20.2
       - name: Format
@@ -69,7 +69,7 @@ jobs:
         run: |
           rustup toolchain install
           rustup target add wasm32-wasip3
-      - uses: Swatinem/rust-cache@v2.9.2
+      - uses: Swatinem/rust-cache@v2.9.3
       - name: Build
         run: cargo build -p pumbo-bridge-pumpkin --release --target wasm32-wasip3 --locked
       - name: Keep the plugin file
