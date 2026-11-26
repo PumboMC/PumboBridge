@@ -29,7 +29,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 pumbo-common = { git = "https://github.com/PumboMC/PumboProx", rev = "aebc9a76f30422fdd85ce2a545c8019ee4aea919" }
 pumbo-bridge-core = { path = "crates/pumbo-bridge-core" }
-pumbo-bridge-proto = { git = "https://github.com/PumboMC/PumboProx", rev = "aebc9a76f30422fdd85ce2a545c8019ee4aea919" }
+pumbo-bridge-proto = { git = "https://github.com/PumboMC/PumboProx", rev = "de9bc28782cd9c7dc913468ead2e2866978ba876" }
 
 [profile.release]
 opt-level = "s"

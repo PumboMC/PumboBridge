@@ -482,7 +482,7 @@ dependencies = [
 [[package]]
 name = "pumbo-bridge-proto"
 version = "0.2.5-beta"
-source = "git+https://github.com/PumboMC/PumboProx?rev=aebc9a76f30422fdd85ce2a545c8019ee4aea919#aebc9a76f30422fdd85ce2a545c8019ee4aea919"
+source = "git+https://github.com/PumboMC/PumboProx?rev=de9bc28782cd9c7dc913468ead2e2866978ba876#de9bc28782cd9c7dc913468ead2e2866978ba876"
 dependencies = [
  "ciborium",
  "hmac",
